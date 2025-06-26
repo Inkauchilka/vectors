@@ -1,0 +1,909 @@
+<html lang="he" dir="rtl"><head><script>(function(firebaseConfig, initialAuthToken, appId) {
+        window.__firebase_config = firebaseConfig;
+        window.__initial_auth_token = initialAuthToken;
+        window.__app_id = appId;
+            })("\n{\n  \"apiKey\": \"AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY\",\n  \"authDomain\": \"bard-frontend.firebaseapp.com\",\n  \"projectId\": \"bard-frontend\",\n  \"storageBucket\": \"bard-frontend.firebasestorage.app\",\n  \"messagingSenderId\": \"175205271074\",\n  \"appId\": \"1:175205271074:web:2b7bd4d34d33bf38e6ec7b\"\n}\n","eyJhbGciOiJSUzI1NiIsImtpZCI6IjAyNzI1NzgwMjQzZmMwYTYwOGExZjA3MzFiZDAzNmVjODZkYmI4MDciLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJmaXJlYmFzZS1hZG1pbnNkay1mYnN2Y0BiYXJkLWZyb250ZW5kLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6XC9cL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbVwvZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJ1aWQiOiIxNTQ0MzE3MTU2MzAxNTQ2NTY4NyIsImFwcElkIjoiY19jZGEzNDliZjExNmI2YmM1X2xpbmVhci1jb21iaW5hdGlvbi1pbnRlcmFjdGl2ZS04IiwiaXNzIjoiZmlyZWJhc2UtYWRtaW5zZGstZmJzdmNAYmFyZC1mcm9udGVuZC5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsImV4cCI6MTc1MDkyMDA5OCwiaWF0IjoxNzUwOTE2NDk4LCJhbGciOiJSUzI1NiJ9.tvOcXTe7lXUe04lBo_z1XjqWjBnVK-7syqATAWIpYesnhIMuXDUHkAiWtksLBYFBVsWgVENibd4lrMNm9ZOr1Yv_8FIlAKOSizr1xqom4Vkg_uH2-GxbA-1Yy2b9DjgSR1oQVmraP6yQUKByTXUvyj-O-8cKjO2mICeKDFYaO7HNXhKFW4CYwS7k2vAaLji4NYnpLKqjvsvZGpN3DiZ4NcopKvlDcBNTa4SdZPWl0RfVe4tmHZq_oioSyoyfXQGKjdkA88G8DK2hFmX_WhTWmjY-Bwj7NgAnjy3cGhQCLE0a-0WKoi6uImEdp_vMLFOTqxcCSxH_wRgEy_sgtbaR0w","c_cda349bf116b6bc5_linear-combination-interactive-8")</script><script>(function() {
+  // Ensure this script is executed only once
+  if (window.firebaseAuthBridgeScriptLoaded) {
+    return;
+  }
+  window.firebaseAuthBridgeScriptLoaded = true;
+
+  let nextTokenPromiseId = 0;
+
+  // Stores { resolve, reject } for ongoing token requests
+  const pendingTokenPromises = {};
+
+  // Listen for messages from the Host Application
+  window.addEventListener('message', function(event) {
+
+    const messageData = event.data;
+
+  if (messageData && messageData.type === 'RESOLVE_NEW_FIREBASE_TOKEN') {
+      const { success, token, error, promiseId } = messageData ?? {};
+      if (pendingTokenPromises[promiseId]) {
+        if (success) {
+          pendingTokenPromises[promiseId].resolve(token);
+        } else {
+          pendingTokenPromises[promiseId].reject(new Error(error || 'Token refresh failed from host.'));
+        }
+        delete pendingTokenPromises[promiseId];
+      }
+    }
+  });
+
+  // Expose a function for the Generated App to request a new Firebase token
+  window.requestNewFirebaseToken = function() {
+    const currentPromiseId = nextTokenPromiseId++;
+    const promise = new Promise((resolve, reject) => {
+      pendingTokenPromises[currentPromiseId] = { resolve, reject };
+    });
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: 'REQUEST_NEW_FIREBASE_TOKEN',
+        promiseId: currentPromiseId
+      }, '*');
+    } else {
+      pendingTokenPromises[currentPromiseId].reject(new Error('No parent window to request token from.'));
+      delete pendingTokenPromises[currentPromiseId];
+    }
+    return promise;
+  };
+})();</script><script>let realOriginalGetUserMedia = null;
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  realOriginalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+}
+
+(function() {
+  if (navigator.mediaDevices && navigator.mediaDevices.__proto__) {
+    try {
+      Object.defineProperty(navigator.mediaDevices.__proto__, 'getUserMedia', {
+        get: function() {
+          return undefined; // Or throw an error
+        },
+        configurable: false
+      });
+    } catch (error) {
+      console.error("Error defining prototype getter:", error);
+    }
+  }
+})();
+
+(function() {
+  let originalGetUserMedia = realOriginalGetUserMedia;
+
+  const pendingMediaResolvers = {};
+  let nextMediaPromiseId = 0;
+
+  function interceptGetUserMedia() {
+    if (navigator.mediaDevices) {
+      Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+        value: function(constraints) {
+          const mediaPromiseId = nextMediaPromiseId++;
+          const promise = new Promise((resolve, reject) => {
+            pendingMediaResolvers[mediaPromiseId] = (granted) => {
+              delete pendingMediaResolvers[mediaPromiseId];
+              if (granted) {
+                if (originalGetUserMedia) {
+                  originalGetUserMedia(constraints).then(resolve).catch(reject);
+                } else {
+                  reject(new Error("Original getUserMedia not available."));
+                }
+              } else {
+              reject(new DOMException('Permission denied', 'NotAllowedError'));
+            }
+          };
+        });
+
+        window.parent.postMessage({
+          type: 'requestMediaPermission',
+          constraints: constraints,
+          promiseId: mediaPromiseId,
+        }, '*');
+
+        return promise;
+      },
+      writable: false,
+      configurable: false
+    });
+    }
+  }
+
+  interceptGetUserMedia();
+
+  const observer = new MutationObserver(function(mutationsList, observer) {
+    for (const mutation of mutationsList) {
+      if (mutation.type === 'reconfigured' && mutation.name === 'getUserMedia' && mutation.object === navigator.mediaDevices) {
+        interceptGetUserMedia();
+      } else if (mutation.type === 'attributes' && mutation.attributeName === 'getUserMedia' && mutation.target === navigator.mediaDevices) {
+        interceptGetUserMedia();
+      } else if (mutation.type === 'childList' && mutation.addedNodes) {
+        mutation.addedNodes.forEach(node => {
+          if (node === navigator.mediaDevices) {
+            interceptGetUserMedia();
+          }
+        });
+      }
+    }
+  });
+
+  window.addEventListener('message', function(event) {
+    if (event.data) {
+      if (event.data.type === 'resolveMediaPermission') {
+        const { promiseId, granted } = event.data;
+        if (pendingMediaResolvers[promiseId]) {
+          pendingMediaResolvers[promiseId](granted);
+        }
+      }
+    }
+  });
+
+})();</script><script>((function(modelInformation) {
+  const originalFetch = window.fetch;
+  // TODO: b/421908508 - Move these out of the script and match all generative AI model calls.
+  let googleLlmBaseApiUrls = [
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':streamGenerateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predict',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predictLongRunning',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predict',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predictLongRunning',
+  ];
+  modelInformation.deprecatedTextModelNames.forEach((modelName) => {
+    googleLlmBaseApiUrls.push(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':streamGenerateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent',
+    );
+  });
+
+  const pendingFetchResolvers = {};
+  let nextPromiseId = 0;
+
+  function handleStringInput(input, optionsArgument) {
+    const actualUrl = input;
+    const fetchCallArgs = [actualUrl, optionsArgument];
+    const effectiveOptions = optionsArgument || {};
+    const bodyForApiKeyCheck = effectiveOptions.body;
+    const bodyForPostMessage = effectiveOptions.body;
+    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
+  }
+
+  function handleRequestInput(input, optionsArgument) {
+    const actualUrl = input.url;
+    const fetchCallArgs = [input, optionsArgument];
+    const effectiveOptions = { method: input.method, headers: new Headers(input.headers) };
+    let bodyForApiKeyCheck;
+    let bodyForPostMessage;
+
+    if (optionsArgument) {
+      if (optionsArgument.method) effectiveOptions.method = optionsArgument.method;
+      if (optionsArgument.headers) effectiveOptions.headers = new Headers(optionsArgument.headers);
+      if ('body' in optionsArgument) {
+        bodyForApiKeyCheck = optionsArgument.body;
+        bodyForPostMessage = optionsArgument.body;
+      } else {
+        bodyForApiKeyCheck = undefined;
+        bodyForPostMessage = input.body;
+      }
+    } else {
+      bodyForApiKeyCheck = undefined;
+      bodyForPostMessage = input.body;
+    }
+    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
+  }
+
+  window.fetch = function(input, optionsArgument) {
+    let actualUrl;
+    let fetchCallArgs;
+    let effectiveOptions = {};
+    let bodyForApiKeyCheck;
+    let bodyForPostMessage;
+
+    if (typeof input === 'string') {
+      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleStringInput(input, optionsArgument));
+    } else if (input instanceof Request) {
+      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleRequestInput(input, optionsArgument));
+    } else {
+      return originalFetch.apply(window, [input, optionsArgument]);
+    }
+
+    effectiveOptions.method = effectiveOptions.method || 'GET';
+    if (!effectiveOptions.headers) {
+      effectiveOptions.headers = new Headers();
+    }
+
+
+    if (typeof actualUrl === 'string' && googleLlmBaseApiUrls.some((url) => actualUrl.startsWith(url))) {
+      let apiKeyIsNull = true;
+
+      const regex = new RegExp("models/([^:]+)");
+      const modelNameMatch = actualUrl.match(regex);
+      const modelName = modelNameMatch ? modelNameMatch[1] : 'unspecified';
+
+
+      try {
+        const urlObject = new URL(actualUrl);  // Use URL object for robust parsing
+        const apiKeyParam = urlObject.searchParams.get('key');
+        if (apiKeyParam) {
+          apiKeyIsNull = false;
+        }
+      } catch (e) {
+        // Continue checks even if URL parsing fails
+      }
+
+      if (apiKeyIsNull && effectiveOptions.headers) {
+        const h = new Headers(effectiveOptions.headers);
+        const apiKeyHeaderValue = h.get('X-API-Key') || h.get('x-api-key');
+        if (apiKeyHeaderValue) {
+          apiKeyIsNull = false;
+          return originalFetch.apply(window, fetchCallArgs);
+        }
+      }
+
+      if (apiKeyIsNull && effectiveOptions.method && ['POST', 'PUT', 'PATCH'].includes(effectiveOptions.method.toUpperCase()) && typeof bodyForApiKeyCheck === 'string') {
+        try {
+          const bodyData = JSON.parse(bodyForApiKeyCheck);
+          if (bodyData && bodyData.apiKey) {
+            apiKeyIsNull = false;
+            return originalFetch.apply(window, fetchCallArgs);
+          }
+        } catch (e) {
+          // Ignore JSON parsing errors
+        }
+      }
+
+      if(apiKeyIsNull) {
+        const promiseId = nextPromiseId++;
+        const promise = new Promise((resolve) => {
+          pendingFetchResolvers[promiseId] = (resolvedResponse) => {
+            delete pendingFetchResolvers[promiseId];
+            resolve(resolvedResponse);
+          };
+        });
+
+        let serializedBodyForPostMessage;
+        if (typeof bodyForPostMessage === 'string' || bodyForPostMessage == null) {
+            serializedBodyForPostMessage = bodyForPostMessage;
+        } else if (bodyForPostMessage instanceof ReadableStream) {
+            serializedBodyForPostMessage = null;
+        } else {
+            try {
+                serializedBodyForPostMessage = JSON.stringify(bodyForPostMessage);
+            } catch (e) {
+                serializedBodyForPostMessage = null;
+            }
+        }
+
+        const messageOptions = {
+            method: effectiveOptions.method,
+            headers: Object.fromEntries(new Headers(effectiveOptions.headers).entries()),
+            body: serializedBodyForPostMessage
+        };
+
+        window.parent.postMessage({
+          type: 'requestFetch',
+          url: actualUrl,
+          modelName: modelName,
+          options: messageOptions,
+          promiseId: promiseId,
+        }, '*');
+
+        return promise;
+      }
+      return originalFetch.apply(window, fetchCallArgs);
+    }
+    return originalFetch.apply(window, fetchCallArgs);
+  };
+
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'resolveFetch') {
+      const { promiseId, response } = event.data;
+      if (pendingFetchResolvers[promiseId]) {
+        try {
+          const reconstructedResponse = new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: new Headers(response.headers),
+          });
+          pendingFetchResolvers[promiseId](reconstructedResponse);
+        } catch (error) {
+          pendingFetchResolvers[promiseId](new Response(null, { status: 500, statusText: "Interceptor Response Reconstruction Error" }));
+        }
+      }
+    }
+  });
+
+}))({"textModelName":"gemini-2.5-flash-preview-04-17","imageModelName":"imagen-3.0-generate-002","videoModelName":"veo-2.0-generate-001","deprecatedTextModelNames":["gemini-2.0-flash"]})</script><script>(function() {
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
+
+    /**
+   * Normalizes an error event or a promise rejection reason into a structured error object.
+   * @param {*} errorEventOrReason The error object or reason.
+   * @return {object} Structured error data { message, name, stack }.
+   */
+  function getErrorObject(errorEventOrReason) {
+    if (errorEventOrReason instanceof Error) {
+      return {
+        message: errorEventOrReason.message,
+        name: errorEventOrReason.name,
+        stack: errorEventOrReason.stack,
+      };
+    }
+    // Fallback for non-Error objects.
+    try {
+      return {
+        message: JSON.stringify(errorEventOrReason),
+        name: 'UnknownErrorType',
+        stack: null,
+      };
+    } catch (e) {
+      return {
+        message: String(errorEventOrReason),
+        name: 'UnknownErrorTypeNonStringifiable',
+        stack: null,
+      };
+    }
+  }
+
+  /**
+   * Converts an array of arguments (from log/error) into a single string.
+   * Handles Error objects specially to include their message and stack.
+   * @param {Array<*>} args - Arguments passed to console methods.
+   * @return {string} A string representation of the arguments.
+   */
+  function stringifyArgs(args) {
+    return args
+      .map((arg) => {
+        if (arg instanceof Error) {
+          const {message, stack} = arg;
+          return `Error: ${message}${stack ? ('\nStack: ' + stack) : ''}`;
+        }
+        if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg);
+          } catch (error) {
+            return '[Circular Object]';
+          }
+        } else {
+          return String(arg);
+        }
+      })
+      .join(' ');
+  }
+
+  console.log = function(...args) {
+    const logString = stringifyArgs(args);
+    window.parent.postMessage({ type: 'log', message: logString }, '*');
+    originalConsoleLog.apply(console, args);
+  };
+
+  console.error = function(...args) {
+    let errorData;
+    if (args.length > 0 && args[0] instanceof Error) {
+      const err = args[0];
+      // If the first arg is an Error, capture its details.
+      errorData = {
+        type: 'error',
+        source: 'CONSOLE_ERROR',
+        ...getErrorObject(err),
+        rawArgsString: stringifyArgs(args.slice(1)),
+        timestamp: new Date().toISOString(),
+      };
+    } else {
+      // If not an Error object, treat all args as a general error message.
+      errorData = {
+        type: 'error',
+        source: 'CONSOLE_ERROR',
+        message: stringifyArgs(args),
+        name: 'ConsoleLoggedError',
+        stack: null,
+        timestamp: new Date().toISOString(),
+      };
+    }
+    window.parent.postMessage(errorData, '*');
+    originalConsoleError.apply(console, args);
+  };
+
+  // Listen for global unhandled synchronous errors.
+  window.addEventListener('error', function(event) {
+    const errorDetails = event.error ? getErrorObject(event.error) : {
+      message: event.message,
+      name: 'GlobalError',
+      stack: null,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    };
+
+    window.parent.postMessage({
+      type: 'error',
+      source: 'global',
+      ...errorDetails,
+      message: errorDetails.message || event.message,
+      timestamp: new Date().toISOString(),
+    }, '*');
+  });
+
+  // Listen for unhandled promise rejections (asynchronous errors).
+  window.addEventListener('unhandledrejection', function(event) {
+    const errorDetails = getErrorObject(event.reason);
+
+    window.parent.postMessage({
+      type: 'error',
+      source: 'unhandledrejection',
+      ...errorDetails,
+      message: errorDetails.message || 'Unhandled Promise Rejection',
+      timestamp: new Date().toISOString(),
+    }, '*');
+  });
+
+})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>קומבינציה ליניארית: המחשה אינטראקטיבית</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align at the top */
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: #fff;
+            margin-top: 20px;
+            touch-action: none; /* Disable touch gestures by default */
+        }
+        .controls {
+            margin-top: 20px;
+            font-size: 1.5em; /* Larger font for equation */
+            color: #333; /* Default text color, but overridden by p below */
+            text-align: center; /* Center the equation */
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 15px; /* Space above buttons */
+        }
+        .controls p {
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: center; /* Center content */
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping for smaller screens */
+            color: #16A34A; /* Tailwind's text-green-600 - applies to all text children */
+        }
+        /* Style for the OM vector with arrow */
+        .om-vector {
+            position: relative;
+            display: inline-block; /* Allows positioning children absolutely */
+            vertical-align: middle; /* Align with surrounding text */
+            padding-top: 8px; /* Make space for the arrow above */
+            line-height: 1; /* Adjust line height to prevent extra space */
+        }
+        .om-vector img {
+            position: absolute;
+            width: 100%; /* Make arrow span the width of OM */
+            height: 10px; /* Height of the arrow */
+            top: 0; /* Position at the very top of the padding */
+            left: 0;
+            object-fit: fill; /* Ensure arrow fills the width */
+        }
+        .value-display {
+            font-weight: bold;
+            color: inherit; /* Inherit color from parent (which is green) */
+            min-width: 60px;
+            text-align: left; /* Ensure numbers are LTR */
+            direction: ltr;
+        }
+        .download-button {
+            background-color: #007bff; /* Blue for download */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 20px;
+        }
+        .download-button:hover {
+            background-color: #0056b3;
+            transform: scale(1.02);
+        }
+    </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.16 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width: 640px){.container{max-width:640px}}@media (min-width: 768px){.container{max-width:768px}}@media (min-width: 1024px){.container{max-width:1024px}}@media (min-width: 1280px){.container{max-width:1280px}}@media (min-width: 1536px){.container{max-width:1536px}}.mb-6{margin-bottom:1.5rem}.w-full{width:100%}.text-right{text-align:right}.text-3xl{font-size:1.875rem;line-height:2.25rem}.font-bold{font-weight:700}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}@media (min-width: 640px){.sm\:text-4xl{font-size:2.25rem;line-height:2.5rem}}</style></head>
+<body>
+
+<div class="container">
+    <h1 class="text-3xl sm:text-4xl font-bold text-right text-gray-800 mb-6 w-full">
+        קומבינציה ליניארית: המחשה אינטראקטיבית
+    </h1>
+
+    <canvas id="vectorCanvas" width="728" height="364"></canvas>
+
+    <div class="controls">
+        <p>
+            <span dir="ltr">
+                <span class="om-vector">
+                    <!-- SVG arrow color explicitly set to #16A34A (green) -->
+                    <img src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'&gt;&lt;path d='M0,5 L15,5 M10,0 L15,5 L10,10' fill='none' stroke='%2316A34A' stroke-width='2'/&gt;&lt;/svg&gt;" alt="arrow over OM">
+                    OM
+                </span>
+                = <span id="coeffA" class="value-display">0.00</span> <u>u</u> + <span id="coeffB" class="value-display">0.00</span> <u>v</u>
+            </span>
+        </p>
+    </div>
+
+    <button id="downloadHtmlButton" class="download-button">
+        הורד קובץ HTML
+    </button>
+
+</div>
+
+<script>
+    const canvas = document.getElementById('vectorCanvas');
+    const ctx = canvas.getContext('2d');
+    const coeffADisplay = document.getElementById('coeffA');
+    const coeffBDisplay = document.getElementById('coeffB');
+    const downloadHtmlButton = document.getElementById('downloadHtmlButton');
+
+    let scale = 40; // Increased scale for more detailed grid
+    let originX, originY;
+    let u = { x: 2, y: 3 }; // Initial vector u
+    let v = { x: -3, y: 1 }; // Initial vector v
+    let M = { x: 0, y: 0 }; // Initial point M (origin for OM vector)
+
+    let isDraggingU = false;
+    let isDraggingV = false;
+    let isDraggingM = false;
+
+    // Convert Cartesian coordinates to canvas coordinates
+    const toCanvasCoords = (x, y) => ({
+        x: originX + x * scale,
+        y: originY - y * scale
+    });
+
+    // Convert canvas coordinates to Cartesian coordinates
+    const toCartesianCoords = (cx, cy) => ({
+        x: (cx - originX) / scale,
+        y: (originY - cy) / scale
+    });
+
+    // Draw grid lines and origin point O
+    const drawGrid = () => {
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.lineWidth = 0.5;
+
+        // Vertical lines
+        for (let x = -originX; x <= canvas.width - originX; x += scale) {
+            ctx.beginPath();
+            ctx.moveTo(originX + x, 0);
+            ctx.lineTo(originX + x, canvas.height);
+            ctx.stroke();
+        }
+        // Horizontal lines
+        for (let y = -originY; y <= canvas.height - originY; y += scale) {
+            ctx.beginPath();
+            ctx.moveTo(0, originY + y);
+            ctx.lineTo(canvas.width, originY + y);
+            ctx.stroke();
+        }
+
+        // Draw origin point O explicitly
+        ctx.fillStyle = 'black';
+        ctx.beginPath();
+        ctx.arc(originX, originY, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('O', originX + 5, originY + 5);
+    };
+
+    // Draw a vector with an arrow head and a label (with underline for u, v)
+    // `drawArrowHead` parameter controls if an arrow head should be drawn
+    const drawVector = (start, end, color, label = '', dotted = false, drawArrowHead = true) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (dotted) {
+            ctx.setLineDash([5, 5]);
+        } else {
+            ctx.setLineDash([]);
+        }
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        let angle = 0; // Initialize angle to a default value
+
+        if (length > 1e-6) { // Calculate angle only if vector has length (avoid division by zero)
+            angle = Math.atan2(dy, dx);
+        }
+
+        // Draw arrow head: ensure it's always solid, regardless of dotted line
+        // Only draw if drawArrowHead is true and length is not zero
+        if (drawArrowHead && length > 1e-6) { // Use a small epsilon to check for non-zero length
+            let arrowSize = 12; // Default arrow size for main vectors
+            if (dotted) {
+                arrowSize = 15; // Larger arrow size for dotted vectors
+            }
+
+            ctx.setLineDash([]); // Ensure arrow head is solid
+            ctx.beginPath();
+            ctx.moveTo(end.x, end.y);
+            ctx.lineTo(end.x - arrowSize * Math.cos(angle - Math.PI / 6), end.y - arrowSize * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(end.x, end.y);
+            ctx.lineTo(end.x - arrowSize * Math.cos(angle + Math.PI / 6), end.y - arrowSize * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+        }
+
+        ctx.setLineDash([]); // Reset line dash for subsequent drawings
+
+        // Draw label (with underline only for u and v)
+        // Only draw if label exists and length is not zero
+        if (label && length > 1e-6) { // Use a small epsilon to check for non-zero length
+            ctx.fillStyle = color;
+            ctx.font = 'bold 16px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const midX = (start.x + end.x) / 2;
+            const midY = (start.y + end.y) / 2;
+            
+            // Adjust label position based on vector angle to prevent overlap with the vector line
+            const offsetX = 10 * Math.sin(angle);
+            const offsetY = -10 * Math.cos(angle);
+            const labelX = midX + offsetX;
+            const labelY = midY + offsetY;
+
+            ctx.fillText(label, labelX, labelY);
+
+            // Draw underline only for 'u' and 'v' (OM will not have underline on canvas)
+            if (label === 'u' || label === 'v') {
+                const textWidth = ctx.measureText(label).width;
+                const underlineOffset = 3; // Pixels below the text
+                const underlineThickness = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(labelX - textWidth / 2, labelY + underlineOffset);
+                ctx.lineTo(labelX + textWidth / 2, labelY + underlineOffset);
+                ctx.lineWidth = underlineThickness;
+                ctx.strokeStyle = color;
+                ctx.stroke();
+            }
+        }
+    };
+
+    // Draw a point (e.g., M)
+    const drawPoint = (coords, color, label = '') => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(coords.x, coords.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = 'bold 14px Inter';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(label, coords.x + 5, coords.y - 5);
+    };
+
+    // Calculate coefficients a, b
+    const calculateCoefficients = () => {
+        const det = u.x * v.y - u.y * v.x;
+        // Check for near-zero determinant to avoid division by very small numbers
+        if (Math.abs(det) < 1e-9) { 
+            coeffADisplay.textContent = 'N/A';
+            coeffBDisplay.textContent = 'N/A';
+            return { a: NaN, b: NaN, collinear: true };
+        }
+
+        const a = (M.x * v.y - M.y * v.x) / det;
+        const b = (M.y * u.x - M.x * u.y) / det;
+
+        coeffADisplay.textContent = a.toFixed(2);
+        coeffBDisplay.textContent = b.toFixed(2);
+        return { a, b, collinear: false };
+    };
+
+    // Main draw function
+    const draw = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+        drawGrid();
+
+        const O_canvas = toCanvasCoords(0, 0);
+
+        // Draw base vectors u and v
+        const u_canvas = toCanvasCoords(u.x, u.y);
+        const v_canvas = toCanvasCoords(v.x, v.y);
+        drawVector(O_canvas, u_canvas, 'red', 'u');
+        drawVector(O_canvas, v_canvas, 'blue', 'v');
+
+        // Draw point M and vector OM (no label on canvas)
+        const M_canvas = toCanvasCoords(M.x, M.y);
+        drawVector(O_canvas, M_canvas, 'green', ''); // Empty string for label to remove "OM" on canvas
+        drawPoint(M_canvas, 'black', 'M');
+
+        // Calculate coefficients
+        const { a, b, collinear } = calculateCoefficients();
+
+        if (!collinear) {
+            // Draw scaled vectors (a*u) and (b*v)
+            const a_u_end = { x: a * u.x, y: a * u.y };
+            const b_v_end = { x: b * v.x, y: b * v.y };
+
+            const a_u_canvas = toCanvasCoords(a_u_end.x, a_u_end.y);
+            const b_v_canvas = toCanvasCoords(b_v_end.x, b_v_end.y);
+
+            // Visualize parallelogram/triangle rule
+            // Draw a*u and b*v with large, SOLID arrows, as they are components
+            drawVector(O_canvas, a_u_canvas, '#4CAF50', '', true, true); // a*u dotted with SOLID arrow
+            drawVector(O_canvas, b_v_canvas, '#4CAF50', '', true, true); // b*v dotted with SOLID arrow
+
+            // Draw the other two sides of the parallelogram *without* arrows
+            drawVector(a_u_canvas, M_canvas, '#4CAF50', '', true, false); // line from a*u to M (no arrow)
+            drawVector(b_v_canvas, M_canvas, '#4CAF50', '', true, false); // line from b*v to M (no arrow)
+
+            // Ensure the main vector OM is drawn on top if it gets re-drawn
+            drawVector(O_canvas, M_canvas, 'green', ''); // Empty string for label to remove "OM" on canvas
+            drawPoint(M_canvas, 'black', 'M');
+        }
+    };
+    
+    // Adjust canvas size for responsiveness and ensure origin is on a grid intersection
+    const adjustCanvasSize = () => {
+        const containerWidth = canvas.parentElement.clientWidth - 40; // Subtract padding
+        const aspectRatio = 800 / 400; // Original aspect ratio
+        canvas.width = Math.min(containerWidth, 800);
+        canvas.height = canvas.width / aspectRatio;
+        
+        // Calculate originX and originY to be exact multiples of scale, placing O on a grid vertex
+        originX = Math.round((canvas.width / 2) / scale) * scale;
+        originY = Math.round((canvas.height / 2) / scale) * scale;
+
+        draw(); // Redraw on resize
+    };
+
+    window.addEventListener('resize', adjustCanvasSize);
+    adjustCanvasSize(); // Initial adjustment
+
+    // Event listeners for dragging
+    canvas.addEventListener('mousedown', (e) => {
+        const mouseCanvasX = e.offsetX;
+        const mouseCanvasY = e.offsetY;
+        const mouseCartesian = toCartesianCoords(mouseCanvasX, mouseCanvasY);
+
+        const distToU = Math.sqrt(Math.pow(mouseCartesian.x - u.x, 2) + Math.pow(mouseCartesian.y - u.y, 2));
+        const distToV = Math.sqrt(Math.pow(mouseCartesian.x - v.x, 2) + Math.pow(mouseCartesian.y - v.y, 2));
+        const distToM = Math.sqrt(Math.pow(mouseCartesian.x - M.x, 2) + Math.pow(mouseCartesian.y - M.y, 2));
+        
+        const threshold = 0.5; // units for click detection
+
+        if (distToU < threshold) {
+            isDraggingU = true;
+        } else if (distToV < threshold) {
+            isDraggingV = true;
+        } else if (distToM < threshold) {
+            isDraggingM = true;
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDraggingU || isDraggingV || isDraggingM) {
+            const mouseCartesian = toCartesianCoords(e.offsetX, e.offsetY);
+            // Snap to grid for draggable points (0.5 intervals)
+            const snappedX = Math.round(mouseCartesian.x * 2) / 2;
+            const snappedY = Math.round(mouseCartesian.y * 2) / 2;
+
+            if (isDraggingU) {
+                u = { x: snappedX, y: snappedY };
+            } else if (isDraggingV) {
+                v = { x: snappedX, y: snappedY };
+            } else if (isDraggingM) {
+                M = { x: snappedX, y: snappedY };
+            }
+            draw();
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        isDraggingU = false;
+        isDraggingV = false;
+        isDraggingM = false;
+    });
+
+    canvas.addEventListener('mouseout', () => { // Stop dragging if mouse leaves canvas
+        isDraggingU = false;
+        isDraggingV = false;
+        isDraggingM = false;
+    });
+
+    // Touch events for mobile
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const mouseCanvasX = touch.clientX - rect.left;
+        const mouseCanvasY = touch.clientY - rect.top;
+        const mouseCartesian = toCartesianCoords(mouseCanvasX, mouseCanvasY);
+
+        const distToU = Math.sqrt(Math.pow(mouseCartesian.x - u.x, 2) + Math.pow(mouseCartesian.y - u.y, 2));
+        const distToV = Math.sqrt(Math.pow(mouseCartesian.x - v.x, 2) + Math.pow(mouseCartesian.y - v.y, 2));
+        const distToM = Math.sqrt(Math.pow(mouseCartesian.x - M.x, 2) + Math.pow(mouseCartesian.y - M.y, 2));
+        
+        const threshold = 0.8; // Larger threshold for touch
+
+        if (distToU < threshold) {
+            isDraggingU = true;
+        } else if (distToV < threshold) {
+            isDraggingV = true;
+        } else if (distToM < threshold) {
+            isDraggingM = true;
+        }
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // Prevent scrolling
+        if (isDraggingU || isDraggingV || isDraggingM) {
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const mouseCanvasX = touch.clientX - rect.left;
+            const mouseCanvasY = touch.clientY - rect.top;
+            const mouseCartesian = toCartesianCoords(mouseCanvasX, mouseCanvasY);
+
+            // Snap to grid for draggable points (0.5 intervals)
+            const snappedX = Math.round(mouseCartesian.x * 2) / 2;
+            const snappedY = Math.round(mouseCartesian.y * 2) / 2;
+
+            if (isDraggingU) {
+                u = { x: snappedX, y: snappedY };
+            } else if (isDraggingV) {
+                v = { x: snappedX, y: snappedY };
+            } else if (isDraggingM) {
+                M = { x: snappedX, y: snappedY };
+            }
+            draw();
+        }
+    });
+
+    canvas.addEventListener('touchend', () => {
+        isDraggingU = false;
+        isDraggingV = false;
+        isDraggingM = false;
+    });
+
+    // Download HTML button functionality
+    downloadHtmlButton.addEventListener('click', () => {
+        const htmlContent = document.documentElement.outerHTML;
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'index.html'; // Set download file name to index.html for easier GitHub Pages deployment
+        document.body.appendChild(a); // Temporarily add to DOM
+        a.click(); // Programmatically click the link
+        document.body.removeChild(a); // Remove from DOM
+        URL.revokeObjectURL(url); // Clean up the object URL
+    });
+</script>
+
+
+
+</body></html>
